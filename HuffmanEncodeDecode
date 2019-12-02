@@ -1,0 +1,378 @@
+import java.io.*;
+import java.util.*;
+
+public class HuffmanEncodeDecode {
+  
+  private class treeNode {
+    private String chStr;
+    private int prob;
+    private String code;
+    private treeNode next, left, right;
+    
+    private treeNode(String chString, int freq) {
+      chStr = chString;
+      prob = freq;
+      next = null;
+    }
+
+    private treeNode(String chString, int freq, treeNode leftNode, treeNode rightNode) {
+      chStr = chString;
+      prob = freq;
+      next = null;
+      left = leftNode;
+      right = rightNode;
+    }
+    
+    // Prints node's chStr, prob, and code, plus its next's chStr, left’s chStr, and right’s chStr
+    private void printNode(BufferedWriter outFile) {
+      try {
+        outFile.write("(\"" + chStr + "\", " + prob + ", " + code + ", ");
+        if(next == null) {
+          outFile.write("null, ");
+        } else {
+          outFile.write("\"" + next.chStr + "\", ");
+        }
+        if (left == null) {
+          outFile.write("null, ");
+        } else {
+          outFile.write("\"" + left.chStr + "\", ");
+        }
+        if (right == null) {
+          outFile.write("null)");
+        } else {
+          outFile.write("\"" + right.chStr + "\")");
+        }
+        outFile.newLine();
+      } catch (IOException e) {
+        System.out.println("An IOException was caught: " + e.getMessage());
+        e.printStackTrace();
+      }
+    }
+  } // class treeNode
+  
+  
+  private class HuffmanLinkedList {
+    private treeNode listHead;
+
+    private HuffmanLinkedList() {
+      listHead = new treeNode("dummy", 0);
+    }
+
+    // Inserts newNode between spot and spot's next
+    private void insertOneNode(treeNode spot, treeNode newNode) {
+      newNode.next = spot.next;
+      spot.next = newNode;
+    }
+    
+    private treeNode findSpot(treeNode newNode) {
+      treeNode spot = listHead;
+      treeNode lastSpot = spot;
+      while (spot != null && newNode.prob > spot.prob) {
+        lastSpot = spot;
+        spot = spot.next;
+      }
+      // Since insert method places node one further down the list from spot, return node before it
+      return lastSpot;
+    }
+
+    // Prints linked list to OutFile, from listHead (dummy) to the end of list
+    private void printList(BufferedWriter outFile) {
+      treeNode node = listHead;
+      try {
+        outFile.write("listhead --> ");
+        while (node.next != null) {
+          outFile.write("(\"" + node.chStr + "\", "
+              + node.prob + ", \"" + node.next.chStr + "\") --> ");
+          node = node.next;
+        }
+        outFile.write("(\"" + node.chStr + "\", " + node.prob + ", NULL) --> NULL");
+        outFile.newLine();
+        outFile.newLine();
+      } catch (IOException e) {
+        System.out.println("An IOException was caught: " + e.getMessage());
+        e.printStackTrace();
+      }
+    }
+  } // class HuffmanLinkedList
+  
+  
+  private class HuffmanBinaryTree {
+    private treeNode root;
+    private HuffmanLinkedList linkedList;
+    private Scanner inFile;
+    private BufferedWriter outFile1, outFile2, outFile3, outFile4;
+
+    private HuffmanBinaryTree(Scanner in,
+        BufferedWriter out1, BufferedWriter out2, BufferedWriter out3, BufferedWriter out4) {
+      root = null;
+      linkedList = new HuffmanLinkedList();
+      inFile = in;
+      outFile1 = out1;
+      outFile2 = out2;
+      outFile3 = out3;
+      outFile4 = out4;
+    }
+
+    // Constructs the Huffman binary tree, and writes it to outFile1
+    private void constructHuffmanLList() {
+      String ch;
+      int freq;
+      while (inFile.hasNext()) {
+        ch = inFile.next();
+        if (ch.equals("@")) {
+          ch = " ";
+        }
+        if (ch.equals("#")) {
+          ch = "\n";
+        }
+        freq = inFile.nextInt();
+        treeNode newNode = new treeNode(ch, freq);
+        linkedList.insertOneNode(linkedList.findSpot(newNode), newNode);
+        linkedList.printList(outFile1);
+      }
+    }
+    
+    // Constructs the Huffman binary tree, and writes it to outFile1
+    private void constructHuffmanBinTree() {
+      treeNode newNode;
+      treeNode first = linkedList.listHead.next;
+      
+      // Processes through linked list until there is only one node
+      if (first == null) {
+      System.out.println("Error: no information in input file");
+      System.exit(0);
+      }
+      if (first.next == null) {
+        first.left = null;
+        first.right = null;
+        linkedList.printList(outFile1);
+      }
+      while (first.next != null) {
+        newNode = new treeNode(first.chStr + first.next.chStr,
+          first.prob + first.next.prob, first, first.next);
+        linkedList.insertOneNode(linkedList.findSpot(newNode), newNode);
+          
+        linkedList.listHead.next = first.next.next;
+        first = linkedList.listHead.next;
+        linkedList.printList(outFile1);
+      }
+      root = first;
+    }
+    
+    // Performs a preOrder traversal of the binary tree, and writes result to outFile2
+    private void preOrderTraversal(treeNode node) {
+      if (node == null) {
+        return;
+      } else {
+        node.printNode(outFile2);
+        preOrderTraversal(node.left);
+        preOrderTraversal(node.right);
+      }
+    }
+    
+    // Performs a inOrder traversal of the binary tree, and writes result to outFile3
+    private void inOrderTraversal (treeNode node) {
+      if (node == null) {
+        return;
+      } else {
+        inOrderTraversal(node.left);
+        node.printNode(outFile3);
+        inOrderTraversal(node.right);
+      }
+    }
+    
+    // Performs a postOrder traversal of the binary tree, and writes result to outFile4
+    private void postOrderTraversal (treeNode node) {
+      if (node == null) {
+        return;
+      } else {
+        postOrderTraversal(node.left);
+        postOrderTraversal(node.right);
+        node.printNode(outFile4);
+      }
+    }
+  } // class HuffmanBinaryTree
+  
+  
+  private class EncodeDecode {
+    private String[] charCode = new String[256]; // Stores the code for each character
+    
+    // Constructs the Huffman code table
+    void constructCode(treeNode node, String code) {
+      if (node == null) {
+        return;
+      }
+      if (isLeaf(node)) {
+        node.code = code;
+        int index = (int) node.chStr.charAt(0);
+        charCode[index] = code;
+      } else {
+        constructCode(node.left, code + "0");
+        constructCode(node.right, code + "1");
+      }
+    }
+    
+    // Returns true if input node is a leaf (i.e. has no children)
+    private boolean isLeaf(treeNode node) {
+      return node.left == null && node.right == null;
+    }
+    
+    private void userInterface(treeNode root) {
+      String nameOrg = null;
+      String nameCompress = null;
+      String nameDeCompress = null;
+      Scanner in = new Scanner(System.in);
+            
+      while (true) {
+        try {
+          char yesNo = 'a';
+          while (yesNo != 'Y' && yesNo != 'y' && yesNo != 'N' && yesNo != 'n') {
+            System.out.println("Would you like to encode a file? Enter ‘Y’ for yes, ‘N’ for no.");
+            
+            yesNo = in.next().charAt(0);
+            if (yesNo == 'N' || yesNo == 'n') {
+              System.out.println("You have choosen to exit. Goodbye!");
+              in.close();
+              return;
+            } else if (yesNo == 'Y' || yesNo == 'y') {
+              System.out.println("Enter the name of the file to be compressed.");
+              nameOrg = in.next();            
+              nameCompress = nameOrg + "_Compressed";
+              nameDeCompress = nameOrg + "_DeCompressed";
+              System.out.println();
+            } else {
+              System.out.println("Incorrect command, please try again.");
+            }
+          }
+          
+          String currentDir = System.getProperty("user.dir");
+          String orgFilePath = currentDir + File.separator + nameOrg + ".txt";
+          String compFilePath = currentDir + File.separator + nameCompress + ".txt";
+          String deCompFilePath = currentDir + File.separator + nameDeCompress + ".txt";
+
+          Scanner orgFile = new Scanner(new FileReader(orgFilePath));
+          BufferedWriter compFile = new BufferedWriter(new FileWriter(compFilePath));
+          BufferedWriter deCompFile = new BufferedWriter(new FileWriter(deCompFilePath));
+          
+          encode(orgFile, compFile);
+          
+          compFile.close();
+          
+          Scanner readCompFile = new Scanner(new FileReader(compFilePath));
+          decode(root, readCompFile, deCompFile);
+          
+          orgFile.close();
+          readCompFile.close();
+          deCompFile.close();
+
+        } catch(IOException e) {
+          System.out.println("An IOException was caught: " + e.getMessage());
+          e.printStackTrace();
+        }
+      }
+    }
+    
+    // Reads input file (inFile) and writes its contents as compressed data to outFile
+    private void encode(Scanner inFile, BufferedWriter outFile) {
+      try {
+        while (inFile.hasNextLine()) {
+          String textLine = inFile.nextLine();
+          textLine += "\n";
+          for (int i = 0; i < textLine.length(); i++) {
+            char charIn = textLine.charAt(i);
+            int index = (int) charIn;
+            if (charCode[index] != null) {
+              outFile.write(charCode[index]);
+            } else {
+              System.out.println("Error: The input character count data is incorrect!");
+              System.exit(1);
+            }
+          }
+        }
+      } catch(IOException e) {
+        System.out.println("An IOException was caught: " + e.getMessage());
+        e.printStackTrace();
+      }
+    }
+    
+    // Reads compressed data from inFile, then decompresses its contents and writes to outFile
+    private void decode(treeNode root, Scanner inFile, BufferedWriter outFile) {
+      try {
+        treeNode spot = root;
+        inFile.useDelimiter("");
+        while (inFile.hasNext()) {
+          char oneBit = inFile.next().charAt(0);
+          if (oneBit == '0') {
+            spot = spot.left;
+          } else if (oneBit == '1') {
+            spot = spot.right;
+          } else {
+            System.out.println("Error: The compressed file contains an invalid character!");
+            return;
+          }
+          if (isLeaf(spot)) {
+            outFile.write(spot.chStr);
+            spot = root;
+          }
+        }
+        // At the EoF if last spot was a leaf, spot is reset to the root
+        // If spot does not equal the root here, there are extra bits in the compressed file
+        if (spot != root) {
+          System.out.println("Error: The compressed file is corrupted!");
+        }
+      } catch(IOException e) {
+        System.out.println("An IOException was caught: " + e.getMessage());
+        e.printStackTrace();
+      } 
+    }
+  } // class EncodeDecode
+  
+  
+  public static void main (String args[]) {
+    if (args.length == 5) {
+      try {
+        Scanner input = new Scanner(new FileReader(args[0]));
+        BufferedWriter output1 = new BufferedWriter(new FileWriter(args[1]));
+        BufferedWriter output2 = new BufferedWriter(new FileWriter(args[2]));
+        BufferedWriter output3 = new BufferedWriter(new FileWriter(args[3]));
+        BufferedWriter output4 = new BufferedWriter(new FileWriter(args[4]));
+
+        HuffmanEncodeDecode hc = new HuffmanEncodeDecode();
+        HuffmanBinaryTree hbt =
+            hc.new HuffmanBinaryTree(input, output1, output2, output3, output4);
+        
+        output1.write("Constructing the Huffman Linked List:\n\n");
+        hbt.constructHuffmanLList();
+        output1.newLine();
+        
+        output1.write("Constructing the Huffman Binary Tree:\n\n");
+        hbt.constructHuffmanBinTree();
+        
+        EncodeDecode hed = hc.new EncodeDecode();
+        hed.constructCode(hbt.root, "");
+        
+        output2.write(" *** Huffman Binary Tree: PreOrder Traversal ***\n\n");
+        hbt.preOrderTraversal(hbt.root);
+        output3.write(" *** Huffman Binary Tree: InOrder Traversal ***\n\n");
+        hbt.inOrderTraversal(hbt.root);
+        output4.write(" *** Huffman Binary Tree: PostOrder Traversal ***\n\n");
+        hbt.postOrderTraversal(hbt.root);
+        
+        input.close();
+        output1.close();
+        output2.close();
+        output3.close();
+        output4.close();
+        
+        hed.userInterface(hbt.root);
+        
+      } catch(IOException e) {
+        System.out.println("An IOException was caught: " + e.getMessage());
+        e.printStackTrace();
+      }
+    } else {
+      System.out.println(
+          "Incorrect number of command arguments; must have 1 input file, and 4 output files");
+    }
+  } // main
+} // class HuffmanEncodeDecode
